@@ -1,21 +1,16 @@
 const input = document.getElementById("searchInput");
 const table = document.getElementById("tableList");
+var tRows;
+var filter;
 
 function search() {
-    // var input, filter, ul, li, a, i;
-    // input = document.getElementById("myInput");
-    // filter = input.value.toUpperCase();
-    // ul = document.getElementById("myUL");
-    // li = ul.getElementsByTagName("li");
-    // for (i = 0; i < li.length; i++) {
-    //     a = li[i].getElementsByTagName("a")[0];
-    //     if (a.innerHTML.toUpperCase().indexOf(filter) > -1) {
-    //         li[i].style.display = "";
-    //     } else {
-    //         li[i].style.display = "none";
+    filter = input.value.toLowerCase();
 
-    //     }
-    // }
+	// row 0 is the header labels
+    for (i = 1; i < tRows.length; i++) {
+    	// fancy one liner to check if row contains anything
+    	tRows[i].style.display = tRows[i].textContent.toLowerCase().indexOf(filter) === -1 ? 'none' : 'table-row';
+    }
 }
 
 function openSpec(section) {
@@ -46,4 +41,6 @@ function init() {
 			}
 		}
 	}
+
+	tRows = table.tBodies[0].rows;
 }
