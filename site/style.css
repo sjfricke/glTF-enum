@@ -1,5 +1,6 @@
 * {
   box-sizing: border-box;
+  font-family: sans-serif;
 }
 
 #header {
@@ -62,28 +63,97 @@ input[type=text]:focus {
 	width: 100%;
 	height: 100%;
 	background-color: #f6f6f6;
-	/*padding: 12px;*/
-	/*text-decoration: none;*/
-	/*font-size: 4vh;*/
-	color: black;
+	font-size: 1.8vw;
+}
 
+@media (max-device-width: 490px) {
+	#header {
+		text-align: center;
+		margin-bottom: 3vh;
+		height: 7vh;
+	}
+
+	#header img {
+		vertical-align:middle;
+		max-height: 7vh;
+	}
+
+	#header .headerTitle {
+		vertical-align:middle;
+		font-size: 3vh;
+	}
+
+	#header text {
+		vertical-align:middle;
+		font-size: 2vh;
+	}
+
+	input[type=text] {
+		height: 4vh;
+	    text-align: center;
+	    width: 100%;
+	    box-sizing: border-box;
+	    border: 2px solid #ccc;
+	    border-radius: 4px;
+	    font-size: 2vw;
+	    background-color: white;
+	    background-image: url('searchicon.png');
+	    background-position: 1% 50%; 
+	    background-repeat: no-repeat;
+	    background-size: 3vh 3vh;
+	    padding-left: 2%;
+	}
+
+	input[type=text]:focus {
+	}
+
+	#tableDiv {
+		text-align: center;
+		width: 100%;
+		margin-top: 1vh;
+	}
+
+	#tableList {
+		text-align: center;
+		width: 100%;
+	}
+
+	#tableHeader {
+		width: 100%;
+		font-size: 2vh;
+	}
+
+	.tableRow {
+		width: 100%;
+		height: 100%;
+		background-color: #f6f6f6;
+		font-size: 1.8vw;
+	}
 }
 
 .tableRow:hover:not(.header) {
   background-color: #eee;
 }
 
-.value {
+.tableRow td:nth-child(1){
 	width: 20%;
 	color:blue;
 }
 
-.name {
+.tableRow td:nth-child(2){
 	width: 20%;
 	color:red;
 }
 
-.type {
+.tableRow td:nth-child(3){
 	width: 60%;
 	color:black;
+}
+
+.tableRow td:nth-child(3) span {
+	color : darkorange;
+}
+
+.tableRow td:nth-child(3) text {
+	color : darkgreen;
 }

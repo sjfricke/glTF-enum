@@ -1,15 +1,5 @@
-const enumList = [
-	{"value" : 5121, "name" : "UNSIGNED_BYTE", "types" : [
-		{ "name" : "accessor.componentType", "required" : "yes", "type" : "integer"},
-		{ "name" : "indices.componentType", "required" : "yes", "type" : "integer"}]},
-	{"value" : 34962, "name" : "ARRAY_BUFFER", "types" : [
-		{ "name" : "bufferView.target", "required" : "yes", "type" : "integer"}]},
-	{"value" : 5, "name" : "TRIANGLE_STRIP", "types" : [
-		{ "name" : "primitive.mode", "required" : "no", "type" : "integer", "default" : "TRIANGLE"}]}
-];
-
-
 const input = document.getElementById("searchInput");
+const table = document.getElementById("tableList");
 
 function search() {
     // var input, filter, ul, li, a, i;
@@ -28,14 +18,32 @@ function search() {
     // }
 }
 
-function init() {
-	input.focus();
-	// var list = document.getElementById("myUL");
-	// for (var i = 0; i < gitDictionary.length; i++) {
-	// 	list.innerHTML += "<li><a href='#'><span style='color:red'>"
-	// 					   + gitDictionary[i].command
-	// 					   + "</span> - " + gitDictionary[i].description +"</a></li>";
-	// }
+function openSpec(section) {
+	window.open(
+		"https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#" + section,
+		"_blank");
+}
 
-	// https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#bufferviewtarget
+function init() {
+	document.getElementById("lastUpdated").innerHTML = LAST_UPDATE;
+	input.focus();
+
+	// adds items to table
+	for (var i = 0; i < ENUMS.length; i++) {
+		var row = table.insertRow(-1);
+		row.className = "tableRow";
+		(row.insertCell(0)).innerHTML = ENUMS[i].value;
+		(row.insertCell(1)).innerHTML = ENUMS[i].name;
+		var typeCell = row.insertCell(2);
+		typeCell.innerHTML = "";
+		for (var j = 0; j < ENUMS[i].types.length; j++) {
+			typeCell.innerHTML += "<a href=\"#\" onclick=\"openSpec('" + ENUMS[i].types[j].link +
+			"')\">" + ENUMS[i].types[j].name + "</a> [<span>"+ ENUMS[i].types[j].type +
+			"</span>] (<text>" + ENUMS[i].types[j].required + "</text>)"
+
+			if (ENUMS[i].types.length != j + 1) {
+				typeCell.innerHTML += "<br>";
+			}
+		}
+	}
 }
