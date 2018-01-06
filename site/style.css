@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+}
+
+#header {
+	text-align: center;
+	margin-bottom: 5vh;
+	height: 10vh;
+}
+
+#header img {
+	vertical-align:middle;
+	max-height: 10vh;
+}
+
+#header .headerTitle {
+	vertical-align:middle;
+	font-size: 5vh;
+}
+
+#header text {
+	vertical-align:middle;
+	font-size: 3vh;
+}
+
+input[type=text] {
+	height: 10vh;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    font-size: 3vw;
+    background-color: white;
+    background-image: url('searchicon.png');
+    background-position: 1% 50%; 
+    background-repeat: no-repeat;
+    background-size: 4vh 4vh;
+    padding-left: 2%;
+}
+
+input[type=text]:focus {
+}
+
+#tableDiv {
+	text-align: center;
+	width: 100%;
+	margin-top: 1vh;
+}
+
+#tableList {
+	text-align: center;
+	width: 100%;
+}
+
+#tableHeader {
+	width: 100%;
+	font-size: 3vh;
+}
+
+.tableRow {
+	width: 100%;
+	height: 100%;
+	background-color: #f6f6f6;
+	/*padding: 12px;*/
+	/*text-decoration: none;*/
+	/*font-size: 4vh;*/
+	color: black;
+
+}
+
+.tableRow:hover:not(.header) {
+  background-color: #eee;
+}
+
+.value {
+	width: 20%;
+	color:blue;
+}
+
+.name {
+	width: 20%;
+	color:red;
+}
+
+.type {
+	width: 60%;
+	color:black;
+}
