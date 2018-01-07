@@ -2,14 +2,15 @@ package main
 
 import (
 	"bytes"
-	"github.com/json-iterator/go"
+	// "github.com/json-iterator/go"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
-	"reflect"
+	// "reflect"
+	"net/http"
 	"strings"
 	"time"
-	// "net/http"
 )
 
 type schemaList []struct {
@@ -27,14 +28,14 @@ type schema struct {
 
 type property struct {
 	AnyOf []struct {
-		Description string  `json:"description"`
-		Enum        []int64 `json:"enum"`
-		Type        string  `json:"type"`
+		Description string            `json:"description"`
+		Enum        []json.RawMessage `json:"enum"`
+		Type        string            `json:"type"`
 	} `json:"anyOf"`
 	Items struct {
 		Type string `json:"type"`
 	} `json:"items"`
-	Default                 int64  `json:"default"`
+	// Default                 int64  `json:"default"` // not consistant
 	Description             string `json:"description"`
 	Format                  string `json:"format"`
 	GltfDetailedDescription string `json:"gltf_detailedDescription"`
@@ -57,16 +58,16 @@ type eType struct {
 
 // enums is the output json going to enums.js
 type enums struct {
-	Name  string  `json:"name"`
-	Types []eType `json:"types"`
-	Value int64   `json:"value"`
+	Name  string          `json:"name"`
+	Types []eType         `json:"types"`
+	Value json.RawMessage `json:"value"`
 }
 
 const SchemasUrl string = "https://api.github.com/repositories/7921466/contents/specification/2.0/schema"
 const SchemaTest string = "https://raw.githubusercontent.com/KhronosGroup/glTF/master/specification/2.0/schema/accessor.schema.json"
 const ReadmeUrl string = "https://raw.githubusercontent.com/KhronosGroup/glTF/master/specification/2.0/README.md"
 
-var tags = make([]string, 0, 256)
+var tags = make([]string, 0, 256) // TODO by [][]byte
 
 // Readme is used to setup the tags from the readme for links
 func Readme() {
@@ -120,16 +121,41 @@ func Requires(a []string, b string) string {
 	return "Not Required"
 }
 
-// Link finds tag from readme that matches parameters
-// func Link(s, t string) string {
+func Link(file, title, prop string) string {
 
-// }
+	p := []byte(prop)
+	p = bytes.ToLower(p)
+
+	// gets type from file
+	f := []byte(file)
+	f = f[0:bytes.Index(f, []byte(".schema.json"))]
+	f = f[bytes.LastIndex(f, []byte("."))+1:]
+	f = bytes.ToLower(f)
+	f = append(f, p...)
+
+	// cases like "Animation Sampler" force a check of title first
+	t := []byte(title)
+	t = bytes.ToLower(t)
+	t = bytes.Replace(t, []byte(" "), []byte("-"), -1)
+	t = append(t, p...)
+
+	for _, s := range tags {
+		if bytes.Index([]byte(s), t) == 0 {
+			return s
+		}
+
+		if bytes.Index([]byte(s), f) == 0 {
+			return s
+		}
+	}
+
+	log.Println(file, ",", title, ",", prop)
+	panic("Cannot find a valid link")
+}
 
 func main() {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	// var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var enumJson []enums
-
-	//log.Println(os.Args)
 
 	// res, err := http.Get(SchemasUrl)
 	// if err != nil {
@@ -152,48 +178,71 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, sUrl := range sUrls[0:1] {
-		log.Println(sUrl.DownloadURL)
-	}
+	for _, sUrl := range sUrls[0:2] {
 
-	var s schema
-	err = json.Unmarshal(indices, &s)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(reflect.TypeOf(s))
-
-	// each property key is the name of it
-	// each AnyOf is array of enums
-	for k, v := range s.Properties {
-		log.Println(k) // compentType
-
-		// need to scan and get type first
-		// TODO see if can assume last ele in array is type
-		var valueType string
-		for _, vv := range v.AnyOf {
-			if vv.Type != "" {
-				valueType = vv.Type
-				break
-			}
+		res, err := http.Get(sUrl.DownloadURL)
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		for _, vv := range v.AnyOf {
-			if len(vv.Enum) > 0 {
-				var e enums
-				e.Name = vv.Description
-				e.Value = vv.Enum[0] // TODO, assume possible filled array
+		schemaData, err := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-				r := Requires(s.Required, k)
+		var s schema
+		err = json.Unmarshal(schemaData, &s)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-				e.Types = append(e.Types, eType{
-					Link:     "a",
-					Name:     k,
-					Required: r,
-					Type:     valueType})
+		// each property key is the name of it
+		// each AnyOf is array of enums
+		for prop, v := range s.Properties {
 
-				enumJson = append(enumJson, e)
+			// need to scan and get type first
+			// TODO see if can assume last ele in array is type
+			var valueType string
+			for _, vv := range v.AnyOf {
+				if vv.Type != "" {
+					valueType = vv.Type
+					break
+				}
+			}
+
+			for _, vv := range v.AnyOf {
+				if len(vv.Enum) > 0 {
+					var e enums
+
+					// TODO better way of handling string enums
+					if vv.Description == "" {
+						raw := json.RawMessage(vv.Enum[0])
+						j, err := json.Marshal(&raw)
+						if err != nil {
+							panic(err)
+						}
+						e.Name = string(j)
+					} else {
+						e.Name = vv.Description
+						e.Value = vv.Enum[0] // TODO, assume possible filled array
+					}
+
+					req := Requires(s.Required, prop)
+
+					// creates name by adding title and prop name with periods
+					n := append([]byte(s.Title), []byte(" ")...)
+					n = append(n, []byte(prop)...)
+					n = bytes.Replace(n, []byte(" "), []byte("."), -1)
+
+					e.Types = append(e.Types, eType{
+						Link:     Link(sUrl.Name, s.Title, prop),
+						Name:     string(n),
+						Required: req,
+						Type:     valueType})
+
+					enumJson = append(enumJson, e)
+				}
 			}
 		}
 	}
@@ -202,7 +251,7 @@ func main() {
 
 	outJson, _ := json.Marshal(enumJson)
 
-	f, err := os.Create("test.json")
+	f, err := os.Create("site/enums.js")
 	if err != nil {
 		panic(err)
 	}
