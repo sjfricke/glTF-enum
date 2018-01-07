@@ -3,6 +3,10 @@
   font-family: sans-serif;
 }
 
+a {
+   	color: #004cff;
+}
+
 #header {
 	text-align: center;
 	margin-bottom: 5vh;

@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	// "github.com/json-iterator/go"
 	"encoding/json"
+	"github.com/json-iterator/go"
 	"io/ioutil"
 	"log"
 	"os"
@@ -41,12 +41,12 @@ type property struct {
 	GltfDetailedDescription string `json:"gltf_detailedDescription"`
 	GltfURIType             string `json:"gltf_uriType"`
 	GltfWebgl               string `json:"gltf_webgl"`
-	Maximum                 int64  `json:"maximum"`
 	MaxItems                int64  `json:"maxItems"`
-	Minimum                 int64  `json:"minimum"`
 	MinItems                int64  `json:"minItems"`
 	MultipleOf              int64  `json:"multipleOf"`
 	Type                    string `json:"type"`
+	// Minimum                 int64  `json:"minimum"` // TODO could be floats
+	// Maximum                 int64  `json:"maximum"`
 }
 
 type eType struct {
@@ -58,32 +58,28 @@ type eType struct {
 
 // enums is the output json going to enums.js
 type enums struct {
-	Name  string          `json:"name"`
-	Types []eType         `json:"types"`
-	Value json.RawMessage `json:"value"`
+	Name  string  `json:"name"`
+	Types []eType `json:"types"`
+	Value string  `json:"value"`
 }
 
 const SchemasUrl string = "https://api.github.com/repositories/7921466/contents/specification/2.0/schema"
-const SchemaTest string = "https://raw.githubusercontent.com/KhronosGroup/glTF/master/specification/2.0/schema/accessor.schema.json"
 const ReadmeUrl string = "https://raw.githubusercontent.com/KhronosGroup/glTF/master/specification/2.0/README.md"
 
 var tags = make([]string, 0, 256) // TODO by [][]byte
+var enumJson []enums
 
 // Readme is used to setup the tags from the readme for links
 func Readme() {
-	// res, err := http.Get(ReadmeUrl)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// readme, err := ioutil.ReadAll(res.Body)
-	// res.Body.Close()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	readme, err := ioutil.ReadFile("READMEE.md")
+	res, err := http.Get(ReadmeUrl)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+	}
+
+	readme, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	start := bytes.Index(readme, []byte("# Properties Reference"))
@@ -153,32 +149,43 @@ func Link(file, title, prop string) string {
 	panic("Cannot find a valid link")
 }
 
+// Duplicate checks if enum is already used from another schema
+// returns index in enum slice
+func Duplicate(name, value string) int {
+	for i, e := range enumJson {
+		if name == e.Name && value == e.Value {
+			return i
+		}
+	}
+	return -1
+}
+
 func main() {
-	// var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	var enumJson []enums
+	timerStart := time.Now()
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	// res, err := http.Get(SchemasUrl)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	res, err := http.Get(SchemasUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// schemas, err := ioutil.ReadAll(res.Body)
-	// res.Body.Close()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	schemas, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// set tags ups
 	Readme()
 	log.Println("Tags: ", len(tags))
 
 	var sUrls schemaList
-	err := json.Unmarshal(schemas, &sUrls)
+	err = json.Unmarshal(schemas, &sUrls)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, sUrl := range sUrls[0:2] {
+	for _, sUrl := range sUrls {
 
 		res, err := http.Get(sUrl.DownloadURL)
 		if err != nil {
@@ -216,16 +223,12 @@ func main() {
 					var e enums
 
 					// TODO better way of handling string enums
-					if vv.Description == "" {
-						raw := json.RawMessage(vv.Enum[0])
-						j, err := json.Marshal(&raw)
-						if err != nil {
-							panic(err)
-						}
-						e.Name = string(j)
+					if strings.Contains(string(vv.Enum[0]), "\"") {
+						e.Name = string(vv.Enum[0])
+						e.Value = ""
 					} else {
 						e.Name = vv.Description
-						e.Value = vv.Enum[0] // TODO, assume possible filled array
+						e.Value = string(vv.Enum[0]) // TODO, assume possible filled array
 					}
 
 					req := Requires(s.Required, prop)
@@ -235,13 +238,19 @@ func main() {
 					n = append(n, []byte(prop)...)
 					n = bytes.Replace(n, []byte(" "), []byte("."), -1)
 
-					e.Types = append(e.Types, eType{
+					ee := eType{
 						Link:     Link(sUrl.Name, s.Title, prop),
 						Name:     string(n),
 						Required: req,
-						Type:     valueType})
+						Type:     valueType}
 
-					enumJson = append(enumJson, e)
+					if dup := Duplicate(e.Name, e.Value); dup < 0 {
+						e.Types = append(e.Types, ee)
+						enumJson = append(enumJson, e)
+					} else {
+						enumJson[dup].Types = append(enumJson[dup].Types, ee)
+					}
+
 				}
 			}
 		}
@@ -274,4 +283,7 @@ func main() {
 	if _, err = f.WriteString(";"); err != nil {
 		panic(err)
 	}
+
+	timerEnd := time.Since(timerStart)
+	log.Printf("Execution Time: %s\n", timerEnd)
 }
