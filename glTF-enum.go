@@ -1,17 +1,19 @@
 package main
 
 import (
-	"github.com/json-iterator/go"
-	// "io/ioutil"
 	"bytes"
+	"github.com/json-iterator/go"
+	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 	// "net/http"
 )
 
 type schemaList []struct {
+	Name        string `json:"name"`
 	DownloadURL string `json:"download_url"`
 }
 
@@ -61,14 +63,70 @@ type enums struct {
 }
 
 const SchemasUrl string = "https://api.github.com/repositories/7921466/contents/specification/2.0/schema"
-
 const SchemaTest string = "https://raw.githubusercontent.com/KhronosGroup/glTF/master/specification/2.0/schema/accessor.schema.json"
 const ReadmeUrl string = "https://raw.githubusercontent.com/KhronosGroup/glTF/master/specification/2.0/README.md"
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+var tags = make([]string, 0, 256)
+
+// Readme is used to setup the tags from the readme for links
+func Readme() {
+	// res, err := http.Get(ReadmeUrl)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// readme, err := ioutil.ReadAll(res.Body)
+	// res.Body.Close()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	readme, err := ioutil.ReadFile("READMEE.md")
+	if err != nil {
+		panic(err)
+	}
+
+	start := bytes.Index(readme, []byte("# Properties Reference"))
+	end := bytes.Index(readme, []byte("# Acknowledgments"))
+	props := readme[start:end]
+
+	n, x, y := 0, 0, 0
+	for {
+		x = bytes.Index(props[n:], []byte("####"))
+		if x < 0 {
+			break
+		}
+
+		y = bytes.Index(props[n+x:], []byte("\n"))
+		s := string(props[n+x+5 : n+x+y]) // 5 added from ####_
+		s = strings.ToLower(s)
+		s = strings.TrimSpace(s)
+		s = strings.Replace(s, ":white_check_mark:", "white_check_mark", -1)
+		s = strings.Replace(s, ".", "", -1)
+		s = strings.Replace(s, " ", "-", -1)
+		tags = append(tags, s)
+
+		n = n + x + 1
+	}
+}
+
+// Requires is to check for a string in a string slice
+// returns if string to be seen on site
+func Requires(a []string, b string) string {
+	for _, c := range a {
+		if c == b {
+			return "Required"
+		}
+	}
+	return "Not Required"
+}
+
+// Link finds tag from readme that matches parameters
+// func Link(s, t string) string {
+
+// }
 
 func main() {
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var enumJson []enums
 
 	//log.Println(os.Args)
@@ -83,6 +141,10 @@ func main() {
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
+
+	// set tags ups
+	Readme()
+	log.Println("Tags: ", len(tags))
 
 	var sUrls schemaList
 	err := json.Unmarshal(schemas, &sUrls)
@@ -117,16 +179,20 @@ func main() {
 			}
 		}
 
-		log.Println(valueType)
-
 		for _, vv := range v.AnyOf {
 			if len(vv.Enum) > 0 {
-				log.Println(vv.Description)
-				log.Println(vv.Enum[0])
 				var e enums
 				e.Name = vv.Description
 				e.Value = vv.Enum[0] // TODO, assume possible filled array
-				e.Types = append(e.Types, eType{Link: "a", Name: k, Required: "c", Type: valueType})
+
+				r := Requires(s.Required, k)
+
+				e.Types = append(e.Types, eType{
+					Link:     "a",
+					Name:     k,
+					Required: r,
+					Type:     valueType})
+
 				enumJson = append(enumJson, e)
 			}
 		}
