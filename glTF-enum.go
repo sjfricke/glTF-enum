@@ -1,11 +1,13 @@
 package main
 
 import (
-	// "os"
 	"github.com/json-iterator/go"
-	"reflect"
 	// "io/ioutil"
+	"bytes"
 	"log"
+	"os"
+	"reflect"
+	"time"
 	// "net/http"
 )
 
@@ -44,16 +46,18 @@ type property struct {
 	Type                    string `json:"type"`
 }
 
+type eType struct {
+	Link     string `json:"link"`
+	Name     string `json:"name"`
+	Required string `json:"required"`
+	Type     string `json:"type"`
+}
+
 // enums is the output json going to enums.js
 type enums struct {
-	Name  string `json:"name"`
-	Types []struct {
-		Link     string `json:"link"`
-		Name     string `json:"name"`
-		Required string `json:"required"`
-		Type     string `json:"type"`
-	} `json:"types"`
-	Value int64 `json:"value"`
+	Name  string  `json:"name"`
+	Types []eType `json:"types"`
+	Value int64   `json:"value"`
 }
 
 const SchemasUrl string = "https://api.github.com/repositories/7921466/contents/specification/2.0/schema"
@@ -64,6 +68,9 @@ const ReadmeUrl string = "https://raw.githubusercontent.com/KhronosGroup/glTF/ma
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func main() {
+
+	var enumJson []enums
+
 	//log.Println(os.Args)
 
 	// res, err := http.Get(SchemasUrl)
@@ -93,10 +100,63 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(reflect.TypeOf(s.Properties))
+	log.Println(reflect.TypeOf(s))
 
+	// each property key is the name of it
+	// each AnyOf is array of enums
 	for k, v := range s.Properties {
-		log.Println(k)
-		log.Println(v.Description)
+		log.Println(k) // compentType
+
+		// need to scan and get type first
+		// TODO see if can assume last ele in array is type
+		var valueType string
+		for _, vv := range v.AnyOf {
+			if vv.Type != "" {
+				valueType = vv.Type
+				break
+			}
+		}
+
+		log.Println(valueType)
+
+		for _, vv := range v.AnyOf {
+			if len(vv.Enum) > 0 {
+				log.Println(vv.Description)
+				log.Println(vv.Enum[0])
+				var e enums
+				e.Name = vv.Description
+				e.Value = vv.Enum[0] // TODO, assume possible filled array
+				e.Types = append(e.Types, eType{Link: "a", Name: k, Required: "c", Type: valueType})
+				enumJson = append(enumJson, e)
+			}
+		}
+	}
+
+	// Time to write everything out to file now
+
+	outJson, _ := json.Marshal(enumJson)
+
+	f, err := os.Create("test.json")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	t := time.Now()
+	var dateStr bytes.Buffer
+	dateStr.WriteString(`const LAST_UPDATE = "`)
+	dateStr.WriteString(t.UTC().Format(time.UnixDate))
+	dateStr.WriteString(`"; const ENUMS = `)
+	if _, err = f.WriteString(dateStr.String()); err != nil {
+		panic(err)
+	}
+
+	if _, err = f.WriteString(string(outJson[:])); err != nil {
+		panic(err)
+	}
+
+	// TODO find a better way to add semicolon
+	if _, err = f.WriteString(";"); err != nil {
+		panic(err)
 	}
 }
