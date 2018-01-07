@@ -28,7 +28,7 @@ a {
 	font-size: 3vh;
 }
 
-input[type=text] {
+#searchInput {
 	height: 10vh;
     text-align: center;
     width: 100%;
@@ -42,9 +42,6 @@ input[type=text] {
     background-repeat: no-repeat;
     background-size: 4vh 4vh;
     padding-left: 2%;
-}
-
-input[type=text]:focus {
 }
 
 #tableDiv {
@@ -92,7 +89,7 @@ input[type=text]:focus {
 		font-size: 2vh;
 	}
 
-	input[type=text] {
+	#searchInput {
 		height: 4vh;
 	    text-align: center;
 	    width: 100%;
@@ -106,9 +103,6 @@ input[type=text]:focus {
 	    background-repeat: no-repeat;
 	    background-size: 3vh 3vh;
 	    padding-left: 2%;
-	}
-
-	input[type=text]:focus {
 	}
 
 	#tableDiv {
@@ -133,6 +127,24 @@ input[type=text]:focus {
 		background-color: #f6f6f6;
 		font-size: 1.8vw;
 	}
+}
+
+#tableHeader th:nth-child(1) {
+	width: 20%;
+	background:blue;
+	color:white;
+}
+
+#tableHeader th:nth-child(2) {
+	width: 20%;
+	background:red;
+	color:white;
+}
+
+#tableHeader th:nth-child(3) {
+	width: 60%;
+	background:black;
+	color:white;
 }
 
 .tableRow:hover:not(.header) {
