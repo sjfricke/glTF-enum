@@ -9,6 +9,8 @@ import (
 	// "log"
 	"io/ioutil"
 	"os"
+	"flag"
+	"fmt"
 )
 
 func checkErr(err error) {
@@ -17,12 +19,14 @@ func checkErr(err error) {
 	}
 }
 
+var path = flag.String("path", "deploy", "path compress files too")
+
 func main() {
 
 	// Create deploy folder first
-	path := "deploy/"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.Mkdir(path, 0666)
+	flag.Parse()
+	if _, err := os.Stat(*path); os.IsNotExist(err) {
+		os.MkdirAll(*path, 0755)
 	}
 
 	m := minify.New()
@@ -32,54 +36,54 @@ func main() {
 	m.AddFunc("image/svg+xml", svg.Minify)
 
 	// non minified files
-	data, err := ioutil.ReadFile("site/searchicon.png")
+	data, err := ioutil.ReadFile("searchicon.png")
 	checkErr(err)
-	err = ioutil.WriteFile("deploy/searchicon.png", data, 0644)
+	err = ioutil.WriteFile(fmt.Sprintf("%s/searchicon.png", *path), data, 0644)
 	checkErr(err)
-	data, err = ioutil.ReadFile("site/enums.js")
+	data, err = ioutil.ReadFile("enums.js")
 	checkErr(err)
-	err = ioutil.WriteFile("deploy/enums.js", data, 0644)
+	err = ioutil.WriteFile(fmt.Sprintf("%s/enums.js", *path), data, 0644)
 	checkErr(err)
 
 	// style.css
-	b, err := ioutil.ReadFile("site/style.css")
+	b, err := ioutil.ReadFile("style.css")
 	checkErr(err)
 	mb, err := m.Bytes("text/css", b)
 	checkErr(err)
-	f, err := os.Create("deploy/style.css")
+	f, err := os.Create(fmt.Sprintf("%s/style.css", *path))
 	checkErr(err)
 	defer f.Close()
 	_, err = f.WriteString(string(mb))
 	checkErr(err)
 
 	// main.js
-	b, err = ioutil.ReadFile("site/main.js")
+	b, err = ioutil.ReadFile("main.js")
 	checkErr(err)
 	mb, err = m.Bytes("text/javascript", b)
 	checkErr(err)
-	f, err = os.Create("deploy/main.js")
+	f, err = os.Create(fmt.Sprintf("%s/main.js", *path))
 	checkErr(err)
 	defer f.Close()
 	_, err = f.WriteString(string(mb))
 	checkErr(err)
 
 	// index.html
-	b, err = ioutil.ReadFile("site/index.html")
+	b, err = ioutil.ReadFile("index.html")
 	checkErr(err)
 	mb, err = m.Bytes("text/html", b)
 	checkErr(err)
-	f, err = os.Create("deploy/index.html")
+	f, err = os.Create(fmt.Sprintf("%s/index.html", *path))
 	checkErr(err)
 	defer f.Close()
 	_, err = f.WriteString(string(mb))
 	checkErr(err)
 
 	// gltf_logo.svg
-	b, err = ioutil.ReadFile("site/gltf_logo.svg")
+	b, err = ioutil.ReadFile("gltf_logo.svg")
 	checkErr(err)
 	mb, err = m.Bytes("image/svg+xml", b)
 	checkErr(err)
-	f, err = os.Create("deploy/gltf_logo.svg")
+	f, err = os.Create(fmt.Sprintf("%s/gltf_logo.svg", *path))
 	checkErr(err)
 	defer f.Close()
 	_, err = f.WriteString(string(mb))
